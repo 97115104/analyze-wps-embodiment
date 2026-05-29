@@ -2,7 +2,7 @@
 
 A browser-based tool that measures words per minute (WPM) from a live microphone or an uploaded audio file, then generates a copy-paste analysis report.
 
-**Live demo:** https://&lt;your-username&gt;.github.io/analyze-wps-embodiment/
+**Live demo:** https://97115104.github.io/analyze-wps-embodiment
 
 ## Features
 
