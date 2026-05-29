@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speaking Rate Analyzer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0f1117;
+      --surface:      #1a1d27;
+      --surface2:     #252836;
+      --border:       #2d3148;
+      --accent:       #6c63ff;
+      --accent-light: #a78bfa;
+      --text:         #e2e8f0;
+      --muted:        #94a3b8;
+      --success:      #48bb78;
+      --warning:      #f59e0b;
+      --danger:       #f56565;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem 5rem;
+      line-height: 1.6;
+    }
+
+    .container { max-width: 800px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────────── */
+    header { text-align: center; margin-bottom: 2.5rem; }
+    .logo  { font-size: 2.8rem; margin-bottom: 0.4rem; }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle { color: var(--muted); font-size: 0.97rem; }
+
+    /* ── Tabs ───────────────────────────────────── */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 1.5rem;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: all 0.2s;
+      color: var(--muted);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:hover:not(.active) { background: var(--surface2); color: var(--text); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Card ───────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Buttons ────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.7rem 1.4rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.93rem;
+      transition: all 0.18s;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #5a52e0; transform: translateY(-1px); }
+
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: var(--border); }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+    .btn-lg { padding: 0.9rem 2rem; font-size: 1rem; }
+    .btn-full { width: 100%; }
+
+    /* ── Recording ──────────────────────────────── */
+    .record-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0.5rem 0 0.25rem;
+    }
+
+    .record-btn {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-size: 1.9rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 24px rgba(108,99,255,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .record-btn:hover:not(:disabled) { transform: scale(1.06); }
+
+    .record-btn.recording {
+      background: var(--danger);
+      animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0   rgba(245,101,101,.55); }
+      70%  { box-shadow: 0 0 0 22px rgba(245,101,101,0);  }
+      100% { box-shadow: 0 0 0 0   rgba(245,101,101,0);   }
+    }
+
+    .timer {
+      font-size: 2.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.05em;
+    }
+
+    .live-wpm { font-size: 0.95rem; color: var(--muted); }
+    .live-wpm .wpm-num { font-size: 1.3rem; font-weight: 800; color: var(--accent-light); }
+
+    .record-status { font-size: 0.88rem; color: var(--muted); }
+    .record-status.active { color: var(--danger); font-weight: 600; }
+
+    /* ── Transcript box ─────────────────────────── */
+    .transcript-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      min-height: 90px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.93rem;
+      line-height: 1.75;
+    }
+
+    .transcript-box .interim { color: var(--muted); }
+    .transcript-placeholder { color: var(--muted); font-style: italic; }
+
+    /* ── File upload ────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface2);
+    }
+
+    .drop-zone:hover, .drop-zone.dragging {
+      border-color: var(--accent);
+      background: rgba(108,99,255,.06);
+    }
+
+    .drop-icon { font-size: 2.4rem; margin-bottom: 0.6rem; }
+    .drop-zone p { color: var(--muted); font-size: 0.93rem; margin-bottom: 0.35rem; }
+    .drop-formats { font-size: 0.78rem; color: var(--muted); opacity: .75; }
+    #file-input { display: none; }
+
+    .selected-file {
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      background: rgba(108,99,255,.1);
+      border: 1px solid rgba(108,99,255,.4);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      display: none;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .selected-file.visible { display: flex; }
+    .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Progress ───────────────────────────────── */
+    .progress-wrap { display: none; margin-top: 1rem; }
+    .progress-wrap.visible { display: block; }
+
+    .progress-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: 3px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .progress-fill.indeterminate {
+      width: 40%;
+      animation: slide 1.4s ease-in-out infinite;
+      background: linear-gradient(90deg, transparent, var(--accent-light), transparent);
+    }
+
+    @keyframes slide {
+      0%   { transform: translateX(-200%); }
+      100% { transform: translateX(350%);  }
+    }
+
+    /* ── Results ────────────────────────────────── */
+    .results-section { display: none; }
+    .results-section.visible { display: block; }
+
+    .section-heading {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (min-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-value { font-size: 1.55rem; font-weight: 800; color: var(--accent-light); }
+
+    .pace-badge {
+      display: inline-block;
+      padding: 0.22rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .pace-slow     { background: rgba(100,116,139,.2); color: #94a3b8; }
+    .pace-moderate { background: rgba(245,158,11,.18); color: #f59e0b; }
+    .pace-optimal  { background: rgba(72,187,120,.18); color: #48bb78; }
+    .pace-fast     { background: rgba(245,101,101,.18); color: #f56565; }
+
+    /* ── Pace bar ───────────────────────────────── */
+    .pace-bar-wrap { margin: 1.1rem 0 0; }
+
+    .pace-bar {
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .pace-segments {
+      display: flex;
+      height: 100%;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .pace-seg { flex: 1; }
+    .pace-seg-slow     { background: #475569; }
+    .pace-seg-moderate { background: #d97706; }
+    .pace-seg-optimal  { background: #16a34a; }
+    .pace-seg-fast     { background: #dc2626; }
+
+    .pace-marker {
+      position: absolute;
+      top: -5px;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border: 3px solid var(--accent);
+      border-radius: 50%;
+      transition: left 0.6s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    .pace-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* ── Report ─────────────────────────────────── */
+    .report-box {
+      background: #090b11;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      line-height: 1.75;
+      color: #c9d1d9;
+      width: 100%;
+      resize: vertical;
+      min-height: 340px;
+    }
+
+    .copy-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 0.75rem;
+      gap: 0.75rem;
+    }
+
+    .copy-feedback {
+      font-size: 0.85rem;
+      color: var(--success);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .copy-feedback.show { opacity: 1; }
+
+    /* ── Notices ────────────────────────────────── */
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      font-size: 0.87rem;
+      margin-bottom: 1rem;
+    }
+
+    .notice-warn {
+      background: rgba(245,158,11,.1);
+      border: 1px solid rgba(245,158,11,.3);
+      color: #fcd34d;
+    }
+
+    .notice-info {
+      background: rgba(108,99,255,.1);
+      border: 1px solid rgba(108,99,255,.3);
+      color: var(--accent-light);
+    }
+
+    .notice-icon { flex-shrink: 0; }
+
+    /* ── Misc ───────────────────────────────────── */
+    .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+    .hidden  { display: none !important; }
+    .center  { text-align: center; }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface2); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">🎙️</div>
+    <h1>Speaking Rate Analyzer</h1>
+    <p class="subtitle">Measure your words per minute — live microphone or uploaded audio file</p>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" data-tab="mic"  aria-selected="true">🎤 Microphone</button>
+    <button class="tab-btn"        role="tab" data-tab="file" aria-selected="false">📁 Upload File</button>
+  </div>
+
+  <!-- ── Microphone tab ──────────────────────────────── -->
+  <div id="tab-mic" class="tab-content active">
+    <div id="mic-notice" class="notice notice-warn hidden">
+      <span class="notice-icon">⚠️</span>
+      <span>Live speech recognition requires <strong>Chrome or Edge</strong>. Firefox does not support the Web Speech API. Use the Upload File tab instead.</span>
+    </div>
+
+    <div class="card">
+      <div class="record-center">
+        <button id="record-btn" class="record-btn" aria-label="Start recording">🎤</button>
+        <div class="timer" id="timer">0:00</div>
+        <div class="live-wpm" id="live-wpm-wrap" style="visibility:hidden">
+          Live: <span class="wpm-num" id="live-wpm">—</span> WPM
+        </div>
+        <div class="record-status" id="record-status">Click the microphone to start</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="card-title">Live Transcript</div>
+      <div class="transcript-box" id="mic-transcript">
+        <span class="transcript-placeholder">Your words will appear here as you speak…</span>
+      </div>
+    </div>
+
+    <div class="center" style="margin-top:-0.5rem; margin-bottom:1rem;">
+      <button class="btn btn-secondary hidden" id="reset-mic-btn">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- ── File upload tab ────────────────────────────── -->
+  <div id="tab-file" class="tab-content">
+    <div class="notice notice-info">
+      <span class="notice-icon">ℹ️</span>
+      <span>Audio is transcribed <strong>entirely in your browser</strong> using Whisper AI (~40 MB model, downloaded once &amp; cached). Works offline after first load. Supported: MP3 · WAV · M4A · OGG · FLAC · WebM.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Select Audio File</div>
+      <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Drop audio file here or click to browse">
+        <div class="drop-icon">📂</div>
+        <p><strong>Drop an audio file here</strong> or click to browse</p>
+        <p class="drop-formats">MP3 · WAV · M4A · OGG · FLAC · WebM</p>
+      </div>
+      <input type="file" id="file-input" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.webm">
+
+      <div class="selected-file" id="selected-file">
+        <span>🎵</span>
+        <span class="file-name" id="file-name"></span>
+        <span id="file-duration" style="color:var(--muted);font-size:.84rem;white-space:nowrap"></span>
+      </div>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-label">
+          <span id="prog-text">Loading model…</span>
+          <span id="prog-pct"></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="prog-fill"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem">
+        <button class="btn btn-primary btn-full btn-lg" id="analyze-btn" disabled>
+          ✨ Analyze Speaking Rate
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Results (shared) ──────────────────────────── -->
+  <div class="results-section" id="results">
+    <p class="section-heading">Analysis Results</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Duration</div>
+        <div class="stat-value" id="r-duration" style="font-size:1.2rem">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Words</div>
+        <div class="stat-value" id="r-words">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">WPM</div>
+        <div class="stat-value" id="r-wpm">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pace</div>
+        <div class="stat-value" style="font-size:.95rem;padding-top:.35rem">
+          <span class="pace-badge" id="r-pace-badge">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Pace Assessment</div>
+      <p id="r-assessment" style="font-size:.94rem;line-height:1.75;margin-bottom:1.1rem"></p>
+
+      <div class="pace-bar-wrap">
+        <div class="pace-bar">
+          <div class="pace-segments">
+            <div class="pace-seg pace-seg-slow"></div>
+            <div class="pace-seg pace-seg-moderate"></div>
+            <div class="pace-seg pace-seg-optimal"></div>
+            <div class="pace-seg pace-seg-fast"></div>
+          </div>
+          <div class="pace-marker" id="pace-marker" style="left:0%"></div>
+        </div>
+        <div class="pace-labels">
+          <span>Slow (&lt;100)</span>
+          <span>Moderate (100–149)</span>
+          <span>Optimal (150–180)</span>
+          <span>Fast (&gt;180)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Copy-Paste Report</div>
+      <textarea class="report-box" id="report-box" readonly spellcheck="false"></textarea>
+      <div class="copy-row">
+        <span class="copy-feedback" id="copy-feedback">✓ Copied to clipboard!</span>
+        <button class="btn btn-primary" id="copy-btn">📋 Copy Report</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>All audio processing happens in your browser — nothing is sent to any server.</p>
+  </footer>
+</div>
+
+<script type="module">
+// ─────────────────────────────────────────────────────────────
+//  Utilities
+// ─────────────────────────────────────────────────────────────
+
+function countWords(text) {
+  return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+}
+
+function fmtTimer(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function fmtDuration(sec) {
+  sec = Math.round(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m === 0) return `${s}s`;
+  if (s === 0) return `${m}m`;
+  return `${m}m ${s}s`;
+}
+
+function fmtDurationLong(sec) {
+  sec = Math.round(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  const mp = m > 0 ? `${m} minute${m !== 1 ? 's' : ''}` : '';
+  const sp = s > 0 ? `${s} second${s !== 1 ? 's' : ''}` : '';
+  return [mp, sp].filter(Boolean).join(' ') || '0 seconds';
+}
+
+// Map WPM to a 0–100 bar percentage across four equal segments
+function wpmToBarPct(wpm) {
+  if (wpm <= 0)   return 0;
+  if (wpm < 100)  return (wpm / 100) * 25;
+  if (wpm < 150)  return 25 + ((wpm - 100) / 50) * 25;
+  if (wpm <= 180) return 50 + ((wpm - 150) / 30) * 25;
+  return Math.min(99, 75 + ((wpm - 180) / 70) * 25);
+}
+
+function getPaceInfo(wpm) {
+  if (wpm < 100)  return { key: 'slow',     label: 'SLOW',     cls: 'pace-slow',     stars: '★☆☆☆☆' };
+  if (wpm < 150)  return { key: 'moderate', label: 'MODERATE', cls: 'pace-moderate', stars: '★★★☆☆' };
+  if (wpm <= 180) return { key: 'optimal',  label: 'OPTIMAL',  cls: 'pace-optimal',  stars: '★★★★★' };
+  return             { key: 'fast',     label: 'FAST',     cls: 'pace-fast',     stars: '★★☆☆☆' };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Tab switching
+// ─────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b =>
+      b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.tab-content').forEach(c =>
+      c.classList.toggle('active', c.id === `tab-${tab}`));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+//  Results rendering
+// ─────────────────────────────────────────────────────────────
+
+function renderResults({ durationSec, words, source, transcript }) {
+  const wpm  = durationSec > 0 ? Math.round((words / durationSec) * 60) : 0;
+  const pace = getPaceInfo(wpm);
+
+  document.getElementById('r-duration').textContent = fmtDuration(durationSec);
+  document.getElementById('r-words').textContent    = words.toLocaleString();
+  document.getElementById('r-wpm').textContent      = wpm;
+
+  const badge = document.getElementById('r-pace-badge');
+  badge.textContent = pace.label;
+  badge.className   = `pace-badge ${pace.cls}`;
+
+  const assessmentText = {
+    slow:     `Your rate of ${wpm} WPM is slower than average. This can feel very deliberate and may signal hesitancy. Aiming for 140–160 WPM will give your speech a more natural, confident rhythm.`,
+    moderate: `Your rate of ${wpm} WPM is moderate — clear and easy to follow. This works well for formal presentations. For podcasts or conversation, bumping to 155–170 WPM often sounds more energised.`,
+    optimal:  `Excellent — ${wpm} WPM is right in the sweet spot for natural, engaging communication. This pace is typical of professional speakers, broadcasters, and skilled presenters. Keep it up!`,
+    fast:     `Your rate of ${wpm} WPM is quite fast. While energetic, listeners may struggle to keep up. Try inserting deliberate pauses after key points so ideas have room to land.`,
+  };
+
+  document.getElementById('r-assessment').textContent = assessmentText[pace.key];
+  document.getElementById('pace-marker').style.left   = `${wpmToBarPct(wpm)}%`;
+
+  document.getElementById('report-box').value = buildReport({ wpm, words, durationSec, pace, source, transcript });
+
+  const resultsEl = document.getElementById('results');
+  resultsEl.classList.add('visible');
+  setTimeout(() => resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+}
+
+function buildReport({ wpm, words, durationSec, pace, source, transcript }) {
+  const now  = new Date().toLocaleString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+
+  const sec = Math.round(durationSec);
+  const W   = 57; // report width
+  const bar = '═'.repeat(W);
+  const dsh = '─'.repeat(W);
+
+  const detail = {
+    slow:     `Your speaking rate of ${wpm} WPM is slower than average. This may come\n  across as hesitant. Aim for 140–160 WPM for a more natural pace.`,
+    moderate: `Your speaking rate of ${wpm} WPM is moderate and clear. This pace works\n  well for formal settings. A slightly higher rate (150–170 WPM) feels\n  more dynamic in casual or recorded contexts.`,
+    optimal:  `Excellent speaking rate of ${wpm} WPM. This is the optimal range for\n  natural, engaging communication — consistent with professional speakers,\n  broadcasters, and experienced presenters.`,
+    fast:     `Your speaking rate of ${wpm} WPM is quite fast. Consider adding deliberate\n  pauses after key points to help listeners absorb information.`,
+  };
+
+  const youArr = ['slow','moderate','optimal','fast'];
+  const refLines = [
+    `    Slow:     <100 WPM  — may seem hesitant${pace.key==='slow'     ? '  ◄ YOU' : ''}`,
+    `    Moderate: 100–149 WPM — clear, deliberate${pace.key==='moderate' ? '  ◄ YOU' : ''}`,
+    `    Optimal:  150–180 WPM — natural, engaging${pace.key==='optimal'  ? '  ◄ YOU' : ''}`,
+    `    Fast:     >180 WPM  — may lose listeners${pace.key==='fast'     ? '  ◄ YOU' : ''}`,
+  ].join('\n');
+
+  // Wrap transcript at 55 chars
+  const wrappedTranscript = transcript
+    ? transcript.match(/.{1,55}/g)?.map(l => `  ${l.trim()}`).join('\n') ?? `  ${transcript}`
+    : '  (no transcript available)';
+
+  return [
+    bar,
+    '          SPEAKING RATE ANALYSIS REPORT',
+    bar,
+    '',
+    `  Date:         ${now}`,
+    `  Source:       ${source}`,
+    `  Duration:     ${fmtDurationLong(sec)} (${sec}s)`,
+    '',
+    dsh,
+    '  METRICS',
+    dsh,
+    '',
+    `  Total Words:    ${words.toLocaleString()}`,
+    `  Duration:       ${fmtDuration(sec)}  (${sec} sec)`,
+    `  Speaking Rate:  ${wpm} WPM`,
+    `  Pace Rating:    ${pace.stars}  ${pace.label}`,
+    '',
+    dsh,
+    '  PACE ASSESSMENT',
+    dsh,
+    '',
+    `  ${detail[pace.key]}`,
+    '',
+    '  Reference ranges:',
+    refLines,
+    '',
+    dsh,
+    '  PLAYBACK SPEED IMPACT',
+    dsh,
+    '',
+    '  If a listener plays this back at increased speed, they receive:',
+    '',
+    `  1.0x (normal):   ${wpm} WPM`,
+    `  1.5x speed:      ${Math.round(wpm * 1.5)} WPM  (+${Math.round(wpm * 0.5)} words/min)`,
+    `  2.0x speed:      ${Math.round(wpm * 2.0)} WPM  (+${Math.round(wpm * 1.0)} words/min)`,
+    '',
+    '  Note: comprehension research suggests 1.5x is generally well-tolerated',
+    '  for practiced listeners; 2.0x may reduce retention for complex content.',
+    '',
+    dsh,
+    '  TRANSCRIPT',
+    dsh,
+    '',
+    wrappedTranscript,
+    '',
+    bar,
+    '  Generated by Speaking Rate Analyzer',
+    '  https://github.com',
+    bar,
+  ].join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Copy button
+// ─────────────────────────────────────────────────────────────
+
+document.getElementById('copy-btn').addEventListener('click', async () => {
+  const text = document.getElementById('report-box').value;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.getElementById('report-box');
+    ta.select();
+    document.execCommand('copy');
+  }
+  const fb = document.getElementById('copy-feedback');
+  fb.classList.add('show');
+  setTimeout(() => fb.classList.remove('show'), 2800);
+});
+
+// ─────────────────────────────────────────────────────────────
+//  Microphone tab — Web Speech API
+// ─────────────────────────────────────────────────────────────
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+  document.getElementById('mic-notice').classList.remove('hidden');
+  document.getElementById('record-btn').disabled = true;
+  document.getElementById('record-status').textContent = 'Not supported in this browser';
+}
+
+let recognition      = null;
+let isRecording      = false;
+let startTime        = null;
+let timerInterval    = null;
+let elapsedSec       = 0;
+let finalTranscript  = '';
+let interimTranscript = '';
+
+const recordBtn      = document.getElementById('record-btn');
+const timerEl        = document.getElementById('timer');
+const statusEl       = document.getElementById('record-status');
+const transcriptEl   = document.getElementById('mic-transcript');
+const liveWpmWrap    = document.getElementById('live-wpm-wrap');
+const liveWpmEl      = document.getElementById('live-wpm');
+const resetMicBtn    = document.getElementById('reset-mic-btn');
+
+function updateMicTranscript() {
+  if (!finalTranscript && !interimTranscript) {
+    transcriptEl.innerHTML = '<span class="transcript-placeholder">Your words will appear here as you speak…</span>';
+    return;
+  }
+  transcriptEl.innerHTML =
+    (finalTranscript  ? `<span>${finalTranscript}</span>` : '') +
+    (interimTranscript ? `<span class="interim">${interimTranscript}</span>` : '');
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+function updateLiveWpm() {
+  if (!startTime) return;
+  const mins  = (Date.now() - startTime) / 60000;
+  const wc    = countWords(finalTranscript + ' ' + interimTranscript);
+  liveWpmEl.textContent = mins > 0.05 && wc > 0 ? Math.round(wc / mins) : '—';
+}
+
+function startRecording() {
+  if (!SpeechRecognition) return;
+
+  finalTranscript  = '';
+  interimTranscript = '';
+  elapsedSec = 0;
+  document.getElementById('results').classList.remove('visible');
+  updateMicTranscript();
+
+  recognition = new SpeechRecognition();
+  recognition.continuous     = true;
+  recognition.interimResults = true;
+  recognition.lang           = 'en-US';
+
+  recognition.onstart = () => {
+    isRecording  = true;
+    startTime    = Date.now();
+    recordBtn.classList.add('recording');
+    recordBtn.textContent = '⏹';
+    recordBtn.setAttribute('aria-label', 'Stop recording');
+    statusEl.textContent = 'Recording — speak now';
+    statusEl.classList.add('active');
+    liveWpmWrap.style.visibility = 'visible';
+    resetMicBtn.classList.add('hidden');
+
+    timerInterval = setInterval(() => {
+      elapsedSec = Math.round((Date.now() - startTime) / 1000);
+      timerEl.textContent = fmtTimer(elapsedSec);
+      updateLiveWpm();
+    }, 500);
+  };
+
+  recognition.onresult = (event) => {
+    interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + ' ';
+      } else {
+        interimTranscript += event.results[i][0].transcript;
+      }
+    }
+    updateMicTranscript();
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'not-allowed') {
+      statusEl.textContent = 'Microphone access denied — please allow it in your browser settings';
+      stopRecording(false);
+    } else if (e.error !== 'no-speech') {
+      statusEl.textContent = `Error: ${e.error}`;
+      stopRecording(false);
+    }
+  };
+
+  // Auto-restart to maintain continuous mode
+  recognition.onend = () => {
+    if (isRecording) {
+      try { recognition.start(); } catch {}
+    }
+  };
+
+  recognition.start();
+}
+
+function stopRecording(doRenderResults = true) {
+  isRecording = false;
+  clearInterval(timerInterval);
+
+  if (recognition) {
+    recognition.onend = null;
+    recognition.stop();
+    recognition = null;
+  }
+
+  recordBtn.classList.remove('recording');
+  recordBtn.textContent = '🎤';
+  recordBtn.setAttribute('aria-label', 'Start recording');
+  statusEl.classList.remove('active');
+  resetMicBtn.classList.remove('hidden');
+
+  const text  = (finalTranscript + ' ' + interimTranscript).trim();
+  const words = countWords(text);
+
+  if (doRenderResults && words > 0) {
+    statusEl.textContent = 'Recording complete';
+    renderResults({
+      durationSec: elapsedSec || 1,
+      words,
+      source: 'Microphone Recording',
+      transcript: text,
+    });
+  } else {
+    statusEl.textContent = words === 0 ? 'No speech detected — try again' : 'Recording stopped';
+  }
+}
+
+recordBtn.addEventListener('click', () => {
+  if (isRecording) stopRecording(true);
+  else             startRecording();
+});
+
+resetMicBtn.addEventListener('click', () => {
+  finalTranscript  = '';
+  interimTranscript = '';
+  elapsedSec       = 0;
+  timerEl.textContent  = '0:00';
+  liveWpmEl.textContent = '—';
+  liveWpmWrap.style.visibility = 'hidden';
+  statusEl.textContent = 'Click the microphone to start';
+  statusEl.classList.remove('active');
+  updateMicTranscript();
+  resetMicBtn.classList.add('hidden');
+  document.getElementById('results').classList.remove('visible');
+});
+
+// ─────────────────────────────────────────────────────────────
+//  File upload tab — Whisper AI (Transformers.js)
+// ─────────────────────────────────────────────────────────────
+
+let selectedFile = null;
+let cachedPipeline = null;
+
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const analyzeBtn = document.getElementById('analyze-btn');
+const progWrap   = document.getElementById('progress-wrap');
+const progFill   = document.getElementById('prog-fill');
+const progText   = document.getElementById('prog-text');
+const progPct    = document.getElementById('prog-pct');
+
+dropZone.addEventListener('click',  () => fileInput.click());
+dropZone.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+});
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('dragging');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragging');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) setFile(fileInput.files[0]);
+});
+
+function setFile(file) {
+  selectedFile = file;
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('selected-file').classList.add('visible');
+  analyzeBtn.disabled = false;
+  document.getElementById('file-duration').textContent = '';
+
+  // Peek at duration without decoding
+  const url   = URL.createObjectURL(file);
+  const audio = new Audio();
+  audio.src   = url;
+  audio.addEventListener('loadedmetadata', () => {
+    if (isFinite(audio.duration)) {
+      document.getElementById('file-duration').textContent = fmtDuration(audio.duration);
+    }
+    URL.revokeObjectURL(url);
+  });
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  analyzeBtn.disabled = true;
+  document.getElementById('results').classList.remove('visible');
+  progWrap.classList.add('visible');
+
+  try {
+    const { text, duration } = await transcribeFile(selectedFile);
+    const words = countWords(text);
+    renderResults({
+      durationSec: duration,
+      words,
+      source: `Audio File: ${selectedFile.name}`,
+      transcript: text,
+    });
+  } catch (err) {
+    progText.textContent = `Error: ${err.message}`;
+    progFill.classList.remove('indeterminate');
+    progFill.style.width = '0%';
+    console.error(err);
+  } finally {
+    analyzeBtn.disabled = false;
+    progWrap.classList.remove('visible');
+  }
+});
+
+async function transcribeFile(file) {
+  progText.textContent = 'Loading Whisper AI model…';
+  progFill.classList.add('indeterminate');
+  progPct.textContent  = '';
+
+  const { pipeline, env } = await import(
+    'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2'
+  );
+  env.allowRemoteModels  = true;
+  env.allowLocalModels   = false; // skip file:// cache lookup, go straight to CDN
+
+  if (!cachedPipeline) {
+    cachedPipeline = await pipeline(
+      'automatic-speech-recognition',
+      'Xenova/whisper-tiny.en',
+      {
+        progress_callback: (p) => {
+          if (p.status === 'downloading') {
+            const pct = p.total ? Math.round((p.loaded / p.total) * 100) : 0;
+            progText.textContent = `Downloading model${p.file ? ` (${p.file})` : ''}…`;
+            progFill.classList.remove('indeterminate');
+            progFill.style.width = `${pct}%`;
+            progPct.textContent  = `${pct}%`;
+          } else if (p.status === 'loading') {
+            progText.textContent = 'Initializing model…';
+            progFill.classList.add('indeterminate');
+            progPct.textContent  = '';
+          }
+        },
+      }
+    );
+  }
+
+  progText.textContent = 'Decoding audio…';
+  progFill.classList.add('indeterminate');
+  progFill.style.width = '100%';
+  progPct.textContent  = '';
+
+  // Decode to 16 kHz mono PCM (required by Whisper)
+  const arrayBuffer = await file.arrayBuffer();
+  const audioCtx    = new AudioContext({ sampleRate: 16000 });
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  const pcm         = audioBuffer.getChannelData(0); // mono
+  const duration    = audioBuffer.duration;
+  await audioCtx.close();
+
+  progText.textContent = 'Transcribing — this may take a moment…';
+
+  const result = await cachedPipeline(pcm, {
+    chunk_length_s:   30,
+    stride_length_s:  5,
+    return_timestamps: false,
+  });
+
+  return { text: result.text, duration };
+}
+</script>
+</body>
+</html>
