@@ -27,3 +27,13 @@ A browser-based tool that measures words per minute (WPM) from a live microphone
 ## Privacy
 
 All audio processing happens locally in your browser. No audio or transcript data is sent to any server.
+
+## License
+
+[MIT](LICENSE) © 2026 97115104
+
+## Attestation
+
+This project was built collaboratively with AI assistance and is attested via the [attest](https://attest.97115104.com) open attribution protocol.
+
+Verify: https://attest.97115104.com/s/47w1auzt
