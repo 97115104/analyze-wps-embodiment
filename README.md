@@ -11,12 +11,6 @@ A browser-based tool that measures words per minute (WPM) from a live microphone
 - **Pace assessment** — categorises your rate as Slow / Moderate / Optimal / Fast with a visual bar
 - **Copy-paste report** — plain-text report with metrics, assessment, and full transcript
 
-## Hosting on GitHub Pages
-
-1. Push this repository to GitHub
-2. Go to **Settings → Pages** and set the source branch to `main`, root `/`
-3. Your site will be live at `https://<username>.github.io/<repo-name>/`
-
 ## Browser compatibility
 
 | Feature | Chrome/Edge | Firefox | Safari |
